@@ -384,7 +384,7 @@ Ready to jump in? Follow these detailed steps to get your environment set up:
 
 1. **Clone the Repository:**
    ```bash
-   git clone [repository-url]
+   git clone https://github.com/h-a-r-s-h-s-r-a-h/SolanaDocs.git
    cd solana-development-path
    ```
 
