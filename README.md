@@ -2,42 +2,119 @@
 
 Welcome to your ultimate playground for learning Solana development! This repository is a step-by-step learning path designed to take you from understanding fundamental cryptographic concepts to building and managing tokens and NFTs on the Solana blockchain. Each section builds on the previous one so you can steadily gain confidence and expertise in Solana ecosystem development.
 
----
+## Table of Contents
+1. [Introduction to Cryptography and Solana Clients](#1-introduction-to-cryptography-and-solana-clients)
+2. [Tokens and NFTs on Solana](#2-tokens-and-nfts-on-solana)
+3. [Onchain Program Development](#3-onchain-program-development)
 
 ## 1. Introduction to Cryptography and Solana Clients
 
-This first section lays the groundwork. You’ll learn about essential cryptographic concepts that power the Solana network, and you’ll get acquainted with interacting with the network through practical examples.
+This first section lays the groundwork. You'll learn about essential cryptographic concepts that power the Solana network, and you'll get acquainted with interacting with the network through practical examples.
 
 ### 1.1 Cryptography and the Solana Network
 
-Understanding cryptography is key to mastering blockchain development. In this section, we cover the basics of Solana’s cryptographic mechanisms and introduce you to essential operations:
+Understanding cryptography is key to mastering blockchain development. In this section, we cover the basics of Solana's cryptographic mechanisms and introduce you to essential operations:
 
 #### Key Components:
 
 1. **Keypair Generation (`generate-keypair.ts`):**
-   - **What it does:** Generates new keypairs (a combination of public and private keys) using the `@solana/web3.js` library.
-   - **Why it matters:** Every account on Solana starts with a keypair. Your private key is like your vault’s key—keep it secret, while the public key is your vault’s address.
-   - **Example Code:**
-     ```typescript
-     const keypair = web3.Keypair.generate();
-     console.log(`Public key: ${keypair.publicKey.toBase58()}`);
-     ```
-   - **Interactive Tip:** Try modifying the example to save your generated keypair securely on your machine and print both the public and private keys (be sure to never commit your private key anywhere).
+   ```typescript
+   import * as web3 from "@solana/web3.js";
+   
+   // Generate a new keypair
+   const keypair = web3.Keypair.generate();
+   
+   // Get public and private keys
+   const publicKey = keypair.publicKey.toBase58();
+   const privateKey = Buffer.from(keypair.secretKey).toString('hex');
+   
+   console.log(`Public Key: ${publicKey}`);
+   console.log(`Private Key: ${privateKey}`);
+   ```
+   **Explanation:**
+   - This code demonstrates the fundamental concept of keypair generation in Solana
+   - `web3.Keypair.generate()` creates a new Ed25519 keypair using cryptographically secure random numbers
+   - The public key is converted to base58 format for easy reading and sharing
+   - The private key is converted to a hex string for secure storage
+   - This is the foundation for all Solana account interactions
 
 2. **Keypair Loading (`loading-keypair.ts`):**
-   - **Purpose:** Demonstrates how to load pre-existing keypairs from environment variables.
-   - **Significance:** This is essential for real-world scenarios such as wallet integration, where you don’t generate new keypairs on the fly but rather use your secure wallet credentials.
-   - **How to practice:** Set up a `.env` file with your key data and watch the application load your key effortlessly.
+   ```typescript
+   import * as web3 from "@solana/web3.js";
+   import * as dotenv from "dotenv";
+   
+   dotenv.config();
+   
+   // Load keypair from environment variable
+   const secretKey = process.env.SECRET_KEY;
+   const keypair = web3.Keypair.fromSecretKey(
+     Buffer.from(JSON.parse(secretKey))
+   );
+   
+   console.log(`Loaded keypair: ${keypair.publicKey.toBase58()}`);
+   ```
+   **Explanation:**
+   - This code shows how to securely load an existing keypair from environment variables
+   - `dotenv` is used to load environment variables from a `.env` file
+   - The secret key is parsed from JSON format (common when storing keypairs)
+   - `web3.Keypair.fromSecretKey()` reconstructs the keypair from the secret key
+   - This is essential for wallet integration and maintaining account access
 
 3. **Balance Checking (`check-balance.ts`):**
-   - **What it covers:** This script teaches you how to monitor the SOL balance of an account.
-   - **Real-World Application:** It connects to the Solana network (both devnet and mainnet) for real-time balance checking, crucial for any wallet or DApp.
-   - **Interactive Challenge:** Modify the code to repeatedly check your balance in intervals, simulating a live dashboard for your account.
+   ```typescript
+   import * as web3 from "@solana/web3.js";
+   
+   const connection = new web3.Connection(web3.clusterApiUrl("devnet"));
+   
+   async function checkBalance(publicKey: string) {
+     const balance = await connection.getBalance(
+       new web3.PublicKey(publicKey)
+     );
+     console.log(`Balance: ${balance / web3.LAMPORTS_PER_SOL} SOL`);
+   }
+   ```
+   **Explanation:**
+   - This code demonstrates how to check SOL balance of any account
+   - `web3.Connection` establishes a connection to the Solana network
+   - `clusterApiUrl("devnet")` connects to Solana's development network
+   - `getBalance()` returns the balance in lamports (1 SOL = 1,000,000,000 lamports)
+   - The balance is converted to SOL for human-readable output
 
 4. **SOL Transfer (`transfer.ts`):**
-   - **Core idea:** Learn how to implement SOL transfers between accounts.
-   - **Features:** Covers transaction creation, signing, error handling, and confirmation.
-   - **Hands-On Exercise:** Change the recipient’s address and transfer a small amount of SOL on devnet. Watch how the system provides feedback and confirmations after each transaction.
+   ```typescript
+   import * as web3 from "@solana/web3.js";
+   
+   async function transferSOL(
+     fromKeypair: web3.Keypair,
+     toPublicKey: string,
+     amount: number
+   ) {
+     const connection = new web3.Connection(web3.clusterApiUrl("devnet"));
+     
+     const transaction = new web3.Transaction().add(
+       web3.SystemProgram.transfer({
+         fromPubkey: fromKeypair.publicKey,
+         toPubkey: new web3.PublicKey(toPublicKey),
+         lamports: amount * web3.LAMPORTS_PER_SOL,
+       })
+     );
+     
+     const signature = await web3.sendAndConfirmTransaction(
+       connection,
+       transaction,
+       [fromKeypair]
+     );
+     
+     console.log(`Transaction signature: ${signature}`);
+   }
+   ```
+   **Explanation:**
+   - This code shows how to transfer SOL between accounts
+   - Creates a new transaction using `web3.Transaction()`
+   - Adds a transfer instruction using `SystemProgram.transfer()`
+   - Converts SOL amount to lamports for the transfer
+   - Signs and sends the transaction using the sender's keypair
+   - Returns a transaction signature for tracking
 
 ### 1.2 Interact With Wallets
 
@@ -46,21 +123,76 @@ Next, we introduce you to a Next.js application that demonstrates modern wallet 
 #### Features:
 
 1. **Wallet Connection:**
-   - **Multi-Wallet Support:** Enables connection with popular wallet providers like Phantom and Solflare.
-   - **Event Handling:** Manages wallet connection and disconnection events.
-   - **State Management:** Uses React Context for effective state management across components.
-   - **Interactive Demo:** Use the app’s interface to connect/disconnect your wallet and see how the UI adapts.
+   ```typescript
+   import { useWallet } from '@solana/wallet-adapter-react';
+   
+   function WalletConnect() {
+     const { select, wallets, connected } = useWallet();
+     
+     return (
+       <div>
+         {!connected ? (
+           <div>
+             {wallets.map((wallet) => (
+               <button
+                 key={wallet.adapter.name}
+                 onClick={() => select(wallet.adapter.name)}
+               >
+                 Connect {wallet.adapter.name}
+               </button>
+             ))}
+           </div>
+         ) : (
+           <div>Connected!</div>
+         )}
+       </div>
+     );
+   }
+   ```
+   **Explanation:**
+   - This React component implements wallet connection functionality
+   - Uses the `useWallet` hook from `@solana/wallet-adapter-react`
+   - `select` function allows users to choose their preferred wallet
+   - `wallets` array contains available wallet adapters
+   - `connected` state tracks wallet connection status
+   - Renders different UI based on connection state
 
 2. **Transaction Management:**
-   - **Overview:** Tracks and displays real-time balance updates, transaction history, and provides a smooth signing process.
-   - **Interactive Tip:** Initiate a mock transaction and observe how the system tracks and displays every step from signing to confirmation.
+   ```typescript
+   import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+   
+   function TransactionManager() {
+     const { connection } = useConnection();
+     const { publicKey, sendTransaction } = useWallet();
+     
+     async function sendSOL(recipient: string, amount: number) {
+       const transaction = new web3.Transaction().add(
+         web3.SystemProgram.transfer({
+           fromPubkey: publicKey,
+           toPubkey: new web3.PublicKey(recipient),
+           lamports: amount * web3.LAMPORTS_PER_SOL,
+         })
+       );
+       
+       const signature = await sendTransaction(transaction, connection);
+       await connection.confirmTransaction(signature);
+       
+       return signature;
+     }
+   }
+   ```
+   **Explanation:**
+   - This component handles transaction creation and sending
+   - Uses both `useConnection` and `useWallet` hooks for network and wallet access
+   - Creates a transfer transaction using the connected wallet's public key
+   - Sends the transaction through the wallet adapter
+   - Waits for transaction confirmation
+   - Returns the transaction signature for tracking
 
 3. **UI Components:**
    - **Design:** Built with modern, responsive design using Tailwind CSS.
    - **Feedback:** Implements loading states and error handling so your experience is smooth and predictable.
    - **Practice:** Experiment with customization of UI components. Adjust the loading state messages and error alerts to suit your branding or style preferences.
-
----
 
 ## 2. Tokens and NFTs on Solana
 
@@ -148,7 +280,91 @@ Step into the exciting world of NFTs using the Metaplex protocol! This segment s
      - `verify-metaplex-nft.ts` – confirms NFT ownership and authenticity.
    - **Task:** Try updating metadata post-creation or verifying ownership through the provided functions. This solidifies your understanding of NFT lifecycle management.
 
----
+## 3. Onchain Program Development
+
+This section takes you deep into Solana's onchain program development using the Anchor framework. You'll learn how to create, deploy, and interact with smart contracts on Solana.
+
+### 3.1 Counter Program
+
+A fundamental introduction to Solana program development.
+
+#### Structure:
+- `anchor-counter/`: The Solana program written in Rust
+- `client/`: TypeScript client for interacting with the program
+
+#### Key Features:
+1. **Program Logic:**
+   - Increment and decrement counter
+   - State management
+   - Account validation
+
+2. **Client Integration:**
+   - Program deployment
+   - Transaction handling
+   - State reading
+
+### 3.2 Movie Review Program
+
+A more complex example demonstrating data storage and user interactions.
+
+#### Structure:
+- `anchor-movie-review-program/`: The Solana program
+- `client/`: TypeScript client
+- `.hintrc`: Configuration for program hints
+
+#### Key Features:
+1. **Program Logic:**
+   - Movie review storage
+   - Rating system
+   - User authentication
+
+2. **Client Features:**
+   - Review submission
+   - Rating updates
+   - Review retrieval
+
+### 3.3 Voting System
+
+A decentralized voting system demonstrating complex program logic.
+
+#### Structure:
+- `anchor-voting-program/`: The Solana program
+- `client/`: TypeScript client
+- `README.md`: Detailed documentation
+
+#### Key Features:
+1. **Program Logic:**
+   - Poll creation
+   - Vote casting
+   - Result calculation
+   - Vote verification
+
+2. **Client Features:**
+   - Poll management
+   - Vote interface
+   - Result display
+   - Real-time updates
+
+### 3.4 ChainScribe
+
+A decentralized content publishing platform.
+
+#### Structure:
+- `anchor-chainscribe-program/`: The Solana program
+- `README.md`: Comprehensive documentation
+
+#### Key Features:
+1. **Program Logic:**
+   - Content publishing
+   - Content verification
+   - Author management
+   - Content storage
+
+2. **Client Features:**
+   - Content creation
+   - Publishing workflow
+   - Content retrieval
+   - Author verification
 
 ## Getting Started
 
@@ -161,6 +377,8 @@ Ready to jump in? Follow these detailed steps to get your environment set up:
 - **A Solana Wallet:** Solutions such as Phantom or Solflare work perfectly.
 - **Basic Understanding of TypeScript:** Familiarity helps with seamlessly comprehending the code.
 - **Git:** For version control and accessing the repository.
+- **Rust:** Required for onchain program development.
+- **Anchor Framework:** For Solana program development.
 
 ### Environment Setup:
 
@@ -169,7 +387,6 @@ Ready to jump in? Follow these detailed steps to get your environment set up:
    git clone [repository-url]
    cd solana-development-path
    ```
-   - **Interactive Tip:** Navigate to the project directory and explore the structure to get a feel for the organization.
 
 2. **Install Dependencies:**
    ```bash
@@ -177,7 +394,6 @@ Ready to jump in? Follow these detailed steps to get your environment set up:
    cd [section-directory]
    npm install
    ```
-   - **Experiment:** Try installing dependencies in different folders to understand how each section is self-contained.
 
 3. **Configure Environment:**
    ```bash
@@ -188,8 +404,6 @@ Ready to jump in? Follow these detailed steps to get your environment set up:
    SECRET_KEY=your_private_key
    RPC_ENDPOINT=https://api.devnet.solana.com
    ```
-   - **Note:** Never commit your private keys. Using environment variables keeps your keys secure.
-   - **Interactive Exercise:** Edit and reload your environment variables to see how the changes take effect in your app.
 
 4. **Run the Examples:**
    ```bash
@@ -198,66 +412,44 @@ Ready to jump in? Follow these detailed steps to get your environment set up:
    
    # For Next.js applications:
    npm run dev
+   
+   # For onchain programs:
+   anchor build
+   anchor deploy
    ```
-   - **Practice:** Start by running a simple example (like keypair generation). Gradually move to interactive Next.js apps to see live wallet integration and transaction processing.
-
----
 
 ## Development Tips
 
-These practical tips will help you navigate the development process effectively:
-
 1. **Network Selection:**
-   - **Recommendation:** Use Devnet for testing and development, switching to Mainnet only for production.
-   - **Practice:** Toggle between networks via your `.env` file and observe differing behaviors (e.g., transaction speed, fees).
+   - Use devnet for testing
+   - Switch to mainnet for production
+   - Configure in `.env` file
 
 2. **Error Handling:**
-   - **Insight:** Each example incorporates proper error handling—be sure to read the code comments and understand the mechanisms.
-   - **Challenge:** Introduce simulated network issues (on Devnet) and check if your error handling processes catch and display them appropriately.
+   - All examples include proper error handling
+   - Check transaction confirmations
+   - Monitor network status
 
 3. **Security Best Practices:**
-   - **Core Principles:** Never expose or commit private keys; always use environment variables; implement strict access controls.
-   - **Interactive Best-Practice:** Perform a quick security audit by reviewing your `.env` and configuration files before deploying on Mainnet.
-
----
+   - Never commit private keys
+   - Use environment variables
+   - Implement proper access controls
 
 ## Contributing
 
-Your contributions help this learning resource grow! Here’s how you can get involved:
-
-1. **Fork the Repository:** Create your own version to experiment with new ideas.
-2. **Create Your Feature Branch:** Keep your changes isolated for easier merging.
-3. **Commit Your Changes:** Write clear commit messages to explain your improvements.
-4. **Push and Create a Pull Request:** Engage with the community and have your enhancements reviewed.
-
-- **Involve:** Whether it’s a code improvement, a new example, or better documentation, your input is valuable.
-
----
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for more details.
-
----
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Support
 
-Should you have any questions, run into issues, or wish to propose improvements, here are some options:
-
-1. **Documentation:** Revisit the provided examples and in-line comments.
-2. **Open an Issue:** Submit a detailed description of your problem or suggestion.
-3. **Join Our Community:** Engage in discussions, share your learning experiences, and collaborate with fellow developers.
-
----
-
-### A Few More Ideas to Enhance Your Journey
-
-- **Interactive Sessions:** Consider creating live coding sessions or recorded walkthroughs. This can be especially helpful for topics like NFT creation or wallet integration where visual feedback reinforces learning.
-- **Detailed Tutorials:** Document real-world use cases or case studies of Solana projects. For instance, how decentralized finance (DeFi) applications leverage these fundamentals.
-- **Community Challenges:** Set up periodic coding challenges within the repository—this interaction keeps the project dynamic and benefits the entire community.
-
-Your learning path isn’t just fixed code; it’s an evolving conversation with the ecosystem. Dive in, experiment, and see where your Solana journey takes you!
-
---- 
-
-Happy coding, and welcome to the decentralized world of Solana development!
+For questions or issues:
+1. Check the documentation
+2. Open an issue
+3. Join our community discussions
